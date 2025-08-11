@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Term Planner (Client-side)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Use your current CSS as-is (weekend banding only) -->
+  <link rel="stylesheet" href="./style.css" />
+  <style>
+    :root { --grid-columns: 4; } /* JS will update this dynamically */
+    body { padding: 8px; }
+    .toolbar { display:flex; gap:8px; align-items:center; margin: 8px 0; flex-wrap: wrap; }
+    .toolbar input[type="number"] { width: 7em; }
+    .toolbar button { padding: 6px 10px; }
+    #status { font-size: 0.9em; opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <h1>Term Planner</h1>
+
+  <div class="toolbar">
+    <label>ICS file:
+      <input type="file" id="icsInput" accept=".ics,text/calendar" />
+    </label>
+    <label>Remote ICS URL:
+      <input type="url" id="icsUrl" placeholder="https://example.com/calendar.ics" style="min-width: 28ch;" />
+    </label>
+    <label>Term:
+      <select id="term">
+        <option value="Michaelmas">Michaelmas (Sep–Dec)</option>
+        <option value="Lent">Lent (Jan–Apr)</option>
+        <option value="Petertide">Petertide (May–Aug)</option>
+      </select>
+    </label>
+    <label>Year:
+      <input type="number" id="year" min="1900" max="2100" value="2025" />
+    </label>
+    <button id="renderBtn">Render</button>
+    <button onclick="window.print()">Print</button>
+    <span id="status" aria-live="polite"></span>
+    <small id="corsNote" style="opacity:.75;">Tip: Remote URLs may need CORS. We’ll auto-try a proxy if direct fetch fails.</small>
+  </div>
+  <button id="showToolbarBtn" aria-label="Show toolbar" title="Show toolbar" style="display:none;">⚙︎ Show toolbar</button>
+
+  <div class="grid" id="grid" aria-live="polite"></div>
+  <div class="legend">All-day events only · Landscape · Timezone: Europe/London</div>
+
+  <!-- Libraries (no build step) -->
+  <script type="module">
+    // Load deps, then your app.
+    import * as ICAL from 'https://cdn.skypack.dev/ical.js@1';
+    import { DateTime } from 'https://cdn.skypack.dev/luxon@3';
+
+    // make them available to app.js
+    window._deps = { ICAL, DateTime };
+  </script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+/* Page + global */
+@page { 
+  size: A4 landscape; 
+  margin: 10mm; 
+}
+
+:root { --grid-columns: 4; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+h1 {
+  font-size: 14pt;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+/* Month grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-columns), 1fr);
+  gap: 8px;
+}
+
+.month {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 6px;
+  break-inside: avoid;
+}
+
+.month h2 {
+  font-size: 12pt;
+  margin: 0 0 4px 0;
+  text-align: center;
+}
+
+.rows {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.rows td {
+  vertical-align: top;
+  border-bottom: 1px solid #cbcbcb;
+  padding: 1px 4px;
+}
+
+.rows tr:last-child td {
+  border-bottom: none;
+}
+
+.dow {
+  width: 20mm;
+  font-size: 8.5pt;
+  white-space: nowrap;
+}
+
+/* weekday (e.g., Mon/Tue) */
+.dow-d {
+  display: inline-block;
+  min-width: 2.4em;         /* keeps labels aligned */
+}
+
+/* day number (e.g., 1, 12) */
+.dow-n {
+  display: inline-block;
+  min-width: 1.6em;
+  text-align: right;
+  font-variant-numeric: tabular-nums; /* align digits nicely */
+  font-weight: bold;
+}
+
+.evs {
+  font-size: 8.5pt;
+  line-height: 1.15;
+  max-height: 1.4em;
+  overflow: hidden;
+}
+
+.ev {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* .emptyday .evs {
+  color: #aaa;
+} */
+
+.weekend .dow,
+.weekend .evs { 
+  background: #ffddeb; 
+}
+
+
+.legend {
+  margin-top: 6px;
+  font-size: 7pt;
+  color: #666;
+  text-align: right;
+}
+
+.evs .block {
+  padding: 2px 4px;
+  border: 1px solid #d0d7de;
+  background: #eef6ff;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
+@media print {
+  .month { break-inside: avoid; }
+  .rows { page-break-inside: avoid; }
+  .toolbar, #status, #corsNote, #showToolbarBtn {
+    display: none !important;
+  }
+}
+
+/* Toolbar hide/show + non-printing toggle */
+.toolbar.hidden {
+  display: none !important;
+}
+#showToolbarBtn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  background: #fff;
+  opacity: 0.4;
+  cursor: pointer;
+  font-size: 12px;
+  z-index: 1000;
+}
+#showToolbarBtn:hover { opacity: 0.85; }
