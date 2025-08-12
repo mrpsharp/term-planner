@@ -6,7 +6,7 @@ const LONDON = 'Europe/London';
 const TERMS = {
   Michaelmas: { start: { month: 9,  day: 1  }, end: { month: 12, day: 31 } },
   Lent:       { start: { month: 1,  day: 1  }, end: { month: 4,  day: 30 } },
-  Petertide:  { start: { month: 5,  day: 1  }, end: { month: 8,  day: 31 } },
+  Summer:  { start: { month: 5,  day: 1  }, end: { month: 8,  day: 31 } },
 };
 
 function termRange(year, termName) {
@@ -147,6 +147,7 @@ const els = {
 };
 
 const showBtn = document.getElementById('showToolbarBtn');
+
 function setToolbarVisible(visible) {
   const tb = document.querySelector('.toolbar');
   if (!tb) return;
