@@ -140,3 +140,61 @@ h1 {
   z-index: 1000;
 }
 #showToolbarBtn:hover { opacity: 0.85; }
+
+/* --- Toolbar layout & appearance --- */
+.toolbar {
+  position: sticky;
+  top: 0;
+  background: color-mix(in oklab, white 88%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid #e6e6e6;
+  padding: .6rem .8rem;
+  z-index: 10;
+}
+
+.toolbar-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .8rem;
+  align-items: center;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem .6rem;
+  align-items: center;
+}
+
+.meta {
+  font-size: .9rem;
+  opacity: .85;
+  white-space: nowrap;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid #ddd;
+  padding: .35rem .6rem;
+  border-radius: .6rem;
+  cursor: pointer;
+}
+
+.print-meta {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .toolbar-row { grid-template-columns: 1fr; }
+  .meta { white-space: normal; }
+}
+
+@media print {
+  /* Show a concise meta line when printing */
+  #printMeta.print-meta,
+  .print-meta {
+    display: block !important;
+    font-size: 10pt;
+    margin-bottom: .5rem;
+  }
+}

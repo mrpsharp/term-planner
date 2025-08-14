@@ -28,6 +28,22 @@ function toLocalISODate(dt) {
   return DateTime.fromJSDate(dt).setZone(LONDON).toISODate(); // 'YYYY-MM-DD'
 }
 
+function countMultiDayAllDayEvents(icalText, start, end) {
+  const comp = new ICAL.Component(ICAL.parse(icalText));
+  let multiDay = 0;
+  for (const ve of comp.getAllSubcomponents('vevent')) {
+    const ev = new ICAL.Event(ve);
+    if (!isAllDayEvent(ev)) continue;
+    if (ev.isRecurring()) continue; // recurring handled as single-day occurrences
+    const s = DateTime.fromJSDate(ev.startDate.toJSDate()).setZone(LONDON).startOf('day');
+    const e = DateTime.fromJSDate((ev.endDate ? ev.endDate.toJSDate()
+                    : new Date(+ev.startDate.toJSDate() + 24*3600*1000))).setZone(LONDON);
+    if (e <= start || s >= end.endOf('day')) continue; // no overlap with our window
+    if (e.diff(s, 'days').days > 1) multiDay++;
+  }
+  return multiDay;
+}
+
 function expandAllDayInstances(icalText, start, end) {
   const comp = new ICAL.Component(ICAL.parse(icalText));
   const events = [];
@@ -144,30 +160,74 @@ const els = {
   render: document.getElementById('renderBtn'),
   grid: document.getElementById('grid'),
   status: document.getElementById('status'),
+
+  // NEW:
+  toolbar: document.getElementById('toolbar'),
+  toolbarToggle: document.getElementById('toolbarToggle'),
+  showBtn: document.getElementById('showToolbarBtn'),
+  metaSrc: document.getElementById('metaSrc'),
+  metaStats: document.getElementById('metaStats'),
+  metaRange: document.getElementById('metaRange'),
+  metaTz: document.getElementById('metaTz')
 };
 
-const showBtn = document.getElementById('showToolbarBtn');
-
-function setToolbarVisible(visible) {
-  const tb = document.querySelector('.toolbar');
-  if (!tb) return;
-  if (visible) {
-    tb.classList.remove('hidden');
-    if (showBtn) showBtn.style.display = 'none';
-  } else {
-    tb.classList.add('hidden');
-    if (showBtn) showBtn.style.display = 'inline-block';
+function toDisplayDate(d) {
+  try {
+    if (d && typeof d.toFormat === 'function') return d.toFormat('LLL d, yyyy');
+    const date = (d instanceof Date) ? d : new Date(d);
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return String(d);
   }
 }
-if (showBtn) {
-  showBtn.addEventListener('click', () => setToolbarVisible(true));
+
+function hideToolbar() {
+  if (!els.toolbar) return;
+  els.toolbar.classList.add('hidden');
+  if (els.showBtn) {
+    els.showBtn.style.display = 'inline-block';
+    els.showBtn.setAttribute('aria-expanded', 'false');
+  }
+  sessionStorage.setItem('toolbarHidden', '1');
 }
+
+function showToolbar() {
+  if (!els.toolbar) return;
+  els.toolbar.classList.remove('hidden');
+  if (els.showBtn) {
+    els.showBtn.style.display = 'none';
+    els.showBtn.setAttribute('aria-expanded', 'true');
+  }
+  sessionStorage.setItem('toolbarHidden', '0');
+}
+
+function updateMeta({ source, allDayCount, multiDayCount, startDate, endDate, tz }) {
+  if (els.metaSrc)   els.metaSrc.textContent   = `Loaded: ${source || ''}`;
+  if (els.metaStats) els.metaStats.textContent = `Days shown: ${Number(allDayCount||0)} (from ${Number(multiDayCount||0)} multi‑day events)`;
+  if (els.metaRange) els.metaRange.textContent = `Range: ${toDisplayDate(startDate)} – ${toDisplayDate(endDate)}`;
+  if (els.metaTz)    els.metaTz.textContent    = `TZ: ${tz || Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+
+}
+// Wire up buttons and keyboard shortcut
+els.toolbarToggle?.addEventListener('click', hideToolbar);
+els.showBtn?.addEventListener('click', showToolbar);
+document.addEventListener('keydown', (e) => {
+  if (e.key && e.key.toLowerCase() === 't' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (els.toolbar?.classList.contains('hidden')) showToolbar(); else hideToolbar();
+  }
+});
+
+// Restore last state
+if (sessionStorage.getItem('toolbarHidden') === '1') hideToolbar();
+
 
 // Auto-load ICS from URL parameter if provided
 const params = new URLSearchParams(window.location.search);
+let currentIcsSource = '';
 const icsParamUrl = params.get('ics');
 if (icsParamUrl) {
   if (els.url) els.url.value = icsParamUrl;
+  let currentIcsSource = '';
   // Optionally auto-render
   window.addEventListener('DOMContentLoaded', () => {
     if (els.render) els.render.click();
@@ -222,14 +282,30 @@ els.render.addEventListener('click', async () => {
     }
 
     const { start, end } = termRange(year, termName);
+    const multiDayCount = countMultiDayAllDayEvents(icalText, start, end);
     const instances = expandAllDayInstances(icalText, start, end);
     const byDate = groupByDate(instances);
 
     setStatus(`Loaded ${instances.length} all-day instances.`);
     renderMonths(els.grid, start, end, byDate);
+    if (urlVal) {
+      icalText = await fetchICSFromUrl(urlVal);
+      currentIcsSource = urlVal;
+    } else {
+      icalText = await file.text();
+      currentIcsSource = file ? file.name : currentIcsSource;
+    }
+    updateMeta({
+      source: (currentIcsSource ? (currentIcsSource.split('/').pop() || currentIcsSource) : ''),
+      allDayCount: instances.length,
+      multiDayCount,
+      startDate: start,
+      endDate: end,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
 
     // Hide toolbar after successful render
-    setToolbarVisible(false);
+    hideToolbar();
   } catch (err) {
     console.error(err);
     setStatus(String(err.message || err));

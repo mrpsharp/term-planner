@@ -10,32 +10,55 @@
 <body>
   <h1>Term Planner</h1>
 
-  <div class="toolbar">
-    <label>ICS file:
-      <input type="file" id="icsInput" accept=".ics,text/calendar" />
-    </label>
-    <label>Remote ICS URL:
-      <input type="url" id="icsUrl" placeholder="https://example.com/calendar.ics" style="min-width: 28ch;" />
-    </label>
-    <label>Term:
-      <select id="term">
-        <option value="Michaelmas">Michaelmas (Sep–Dec)</option>
-        <option value="Lent">Lent (Jan–Apr)</option>
-        <option value="Summer">Summer (May–Aug)</option>
-      </select>
-    </label>
-    <label>Year:
-      <input type="number" id="year" min="1900" max="2100" value="2025" />
-    </label>
-    <button id="renderBtn">Render</button>
-    <button onclick="window.print()">Print</button>
-    <span id="status" aria-live="polite"></span>
-    <small id="corsNote" style="opacity:.75;">Tip: Remote URLs may need CORS. We’ll auto-try a proxy if direct fetch fails.</small>
+  <div class="toolbar" role="region" aria-label="Planner toolbar" id="toolbar">
+  <div class="toolbar-row">
+    <div class="controls">
+      <label>ICS file:
+        <input type="file" id="icsInput" accept=".ics,text/calendar" />
+      </label>
+      <label>Remote ICS URL:
+        <input type="url" id="icsUrl" placeholder="https://example.com/calendar.ics" style="min-width: 28ch;" />
+      </label>
+      <label>Term:
+        <select id="term">
+          <option value="Michaelmas">Michaelmas (Sep–Dec)</option>
+          <option value="Lent">Lent (Jan–Apr)</option>
+          <option value="Summer">Summer (May–Aug)</option>
+        </select>
+      </label>
+      <label>Year:
+        <input type="number" id="year" min="1900" max="2100" value="2025" />
+      </label>
+      <button id="renderBtn">Render</button>
+      <button onclick="window.print()">Print</button>
+
+      <!-- NEW: in-toolbar hide button -->
+      <button id="toolbarToggle" class="btn-ghost" type="button"
+              aria-controls="toolbar" aria-expanded="true" title="Hide toolbar">Hide</button>
+
+      <span id="status" aria-live="polite"></span>
+      <small id="corsNote" style="opacity:.75;">Tip: Remote URLs may need CORS. We’ll auto-try a proxy if direct fetch fails.</small>
+    </div>
+
+   
   </div>
+</div>
+<!-- <div id="printMeta" class="print-meta" aria-hidden="true"></div> -->
   <button id="showToolbarBtn" aria-label="Show toolbar" title="Show toolbar" style="display:none;">⚙︎ Show toolbar</button>
 
   <div class="grid" id="grid" aria-live="polite"></div>
-  <div class="legend">Timezone: Europe/London</div>
+  <div class="legend">
+       <!-- NEW: meta line -->
+    <div class="meta" id="metaLine" aria-live="polite">
+      <span id="metaSrc">No calendar loaded</span>
+      <span aria-hidden="true">•</span>
+      <span id="metaStats">—</span>
+      <span aria-hidden="true">•</span>
+      <span id="metaRange">—</span>
+      <span aria-hidden="true">•</span>
+      <span id="metaTz">TZ: —</span>
+    </div>
+  </div>
 
   <!-- Libraries (no build step) -->
   <script type="module">
