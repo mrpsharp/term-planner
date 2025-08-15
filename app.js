@@ -351,7 +351,17 @@ async function fetchICSFromUrl(remoteUrl) {
   }
 }
 
+
 function setStatus(msg) { els.status.textContent = msg; }
+
+// Helper to update the on-page H1 and browser tab title
+function setPlannerTitle(termName, year) {
+  const h1 = document.querySelector('h1');
+  const label = (termName && Number.isFinite(year)) ? `${termName} ${year}` : 'Term Planner';
+  if (h1) h1.textContent = label;
+  // Also update the browser tab's title for shareability
+  document.title = label;
+}
 
 els.render.addEventListener('click', async () => {
   const urlVal = els.url && els.url.value.trim();
@@ -400,6 +410,9 @@ els.render.addEventListener('click', async () => {
       endDate: end,
       tz: Intl.DateTimeFormat().resolvedOptions().timeZone
     });
+
+    // Update page and tab titles to "Term Year"
+    setPlannerTitle(termName, year);
 
     // Hide toolbar after successful render
     hideToolbar();
