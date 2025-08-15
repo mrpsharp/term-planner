@@ -17,6 +17,17 @@ function termRange(year, termName) {
   return { start, end };
 }
 
+// Pick current term/year in Europe/London
+function detectCurrentTermYear() {
+  const now = window._deps.DateTime.now().setZone('Europe/London');
+  const m = now.month;
+  const term =
+    m >= 9  ? 'Michaelmas' :
+    m >= 5  ? 'Petertide'  :
+              'Valentine';
+  return { term, year: now.year };
+}
+
 // ----- ICS parsing & expansion (all-day only) -----
 function isAllDayEvent(ev) {
   // ICAL.Event -> startDate.isDate means VALUE=DATE (all-day)
@@ -280,8 +291,20 @@ function getStateFromForm() {
 window.addEventListener('DOMContentLoaded', () => {
   const state = readStateFromUrl();
   applyStateToForm(state);
-  // Auto-render if we have enough info
-  if (state.ics && state.term && Number.isFinite(state.year)) {
+
+  // If term or year are missing, default them to "current" and sync URL
+  const needTerm = !state.term;
+  const needYear = !Number.isFinite(state.year);
+  if (needTerm || needYear) {
+    const { term, year } = detectCurrentTermYear();
+    if (needTerm && els.term) els.term.value = term;
+    if (needYear && els.year) els.year.value = year;
+    writeStateToUrl(getStateFromForm(), { replace: true });
+  }
+
+  // Only auto-render if we also have an ICS (keeps empty loads quiet)
+  const finalState = readStateFromUrl();
+  if (finalState.ics && finalState.term && Number.isFinite(finalState.year)) {
     els.render?.click();
   }
 });
