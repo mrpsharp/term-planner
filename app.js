@@ -28,22 +28,6 @@ function toLocalISODate(dt) {
   return DateTime.fromJSDate(dt).setZone(LONDON).toISODate(); // 'YYYY-MM-DD'
 }
 
-function countMultiDayAllDayEvents(icalText, start, end) {
-  const comp = new ICAL.Component(ICAL.parse(icalText));
-  let multiDay = 0;
-  for (const ve of comp.getAllSubcomponents('vevent')) {
-    const ev = new ICAL.Event(ve);
-    if (!isAllDayEvent(ev)) continue;
-    if (ev.isRecurring()) continue; // recurring handled as single-day occurrences
-    const s = DateTime.fromJSDate(ev.startDate.toJSDate()).setZone(LONDON).startOf('day');
-    const e = DateTime.fromJSDate((ev.endDate ? ev.endDate.toJSDate()
-                    : new Date(+ev.startDate.toJSDate() + 24*3600*1000))).setZone(LONDON);
-    if (e <= start || s >= end.endOf('day')) continue; // no overlap with our window
-    if (e.diff(s, 'days').days > 1) multiDay++;
-  }
-  return multiDay;
-}
-
 function expandAllDayInstances(icalText, start, end) {
   const comp = new ICAL.Component(ICAL.parse(icalText));
   const events = [];
@@ -164,8 +148,6 @@ const els = {
   // NEW:
   toolbar: document.getElementById('toolbar'),
   showBtn: document.getElementById('showToolbarBtn'),
-  metaSrc: document.getElementById('metaSrc'),
-  metaStats: document.getElementById('metaStats'),
   metaRange: document.getElementById('metaRange'),
   metaTz: document.getElementById('metaTz'),
   printMeta: document.getElementById('printMeta'),
@@ -216,14 +198,15 @@ function showToolbar() {
 }
 
 function updateMeta({ source, allDayCount, multiDayCount, startDate, endDate, tz }) {
-  if (els.metaSrc)   els.metaSrc.textContent   = `Loaded: ${source || ''}`;
-  if (els.metaStats) els.metaStats.textContent = `Days shown: ${Number(allDayCount||0)} (from ${Number(multiDayCount||0)} multi‑day events)`;
   if (els.metaRange) els.metaRange.textContent = `Range: ${toDisplayDate(startDate)} – ${toDisplayDate(endDate)}`;
   if (els.metaTz)    els.metaTz.textContent    = `TZ: ${tz || Intl.DateTimeFormat().resolvedOptions().timeZone}`;
 
-  if (els.printMeta) {
-    els.printMeta.textContent = `${els.metaSrc?.textContent || ''} • ${els.metaStats?.textContent || ''} • ${els.metaRange?.textContent || ''} • ${els.metaTz?.textContent || ''}`;
-  }
+if (els.printMeta) {
+  const parts = [];
+  if (els.metaRange && els.metaRange.textContent) parts.push(els.metaRange.textContent);
+  if (els.metaTz && els.metaTz.textContent) parts.push(els.metaTz.textContent);
+  els.printMeta.textContent = parts.join(' • ');
+}
 }
 
 // Wire up buttons and keyboard shortcut
@@ -388,7 +371,6 @@ els.render.addEventListener('click', async () => {
     }
 
     const { start, end } = termRange(year, termName);
-    const multiDayCount = countMultiDayAllDayEvents(icalText, start, end);
     const instances = expandAllDayInstances(icalText, start, end);
     const byDate = groupByDate(instances);
 
@@ -403,9 +385,6 @@ els.render.addEventListener('click', async () => {
     setStatus(`Loaded ${instances.length} all-day instances.`);
     renderMonths(els.grid, start, end, byDate);
     updateMeta({
-      source: (currentIcsSource ? (currentIcsSource.split('/').pop() || currentIcsSource) : ''),
-      allDayCount: instances.length,
-      multiDayCount,
       startDate: start,
       endDate: end,
       tz: Intl.DateTimeFormat().resolvedOptions().timeZone

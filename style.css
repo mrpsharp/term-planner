@@ -204,7 +204,7 @@ h1 {
     font-size: 16px;
     padding: 6px 8px;
     text-indent: -9999px;
-    position: relative;
+    /* position: relative; */
   }
   #showToolbarBtn::before {
     content: "⚙︎";
