@@ -120,6 +120,12 @@ h1 {
   .toolbar, #status, #corsNote, #showToolbarBtn {
     display: none !important;
   }
+  .evs {
+  font-size: 8.5pt;
+  line-height: 1.15;
+  max-height: 1.4em;
+  overflow: hidden;
+}
 }
 
 /* Toolbar hide/show + non-printing toggle */
