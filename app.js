@@ -5,8 +5,8 @@ const LONDON = 'Europe/London';
 // ----- Term helpers -----
 const TERMS = {
   Michaelmas: { start: { month: 9,  day: 1  }, end: { month: 12, day: 31 } },
-  Lent:       { start: { month: 1,  day: 1  }, end: { month: 4,  day: 30 } },
-  Summer:  { start: { month: 5,  day: 1  }, end: { month: 8,  day: 31 } },
+  Valentine:       { start: { month: 1,  day: 1  }, end: { month: 4,  day: 30 } },
+  Petertide:  { start: { month: 5,  day: 1  }, end: { month: 8,  day: 31 } },
 };
 
 function termRange(year, termName) {
@@ -168,7 +168,8 @@ const els = {
   metaSrc: document.getElementById('metaSrc'),
   metaStats: document.getElementById('metaStats'),
   metaRange: document.getElementById('metaRange'),
-  metaTz: document.getElementById('metaTz')
+  metaTz: document.getElementById('metaTz'),
+  printMeta: document.getElementById('printMeta'),
 };
 
 function toDisplayDate(d) {
@@ -221,18 +222,92 @@ document.addEventListener('keydown', (e) => {
 if (sessionStorage.getItem('toolbarHidden') === '1') hideToolbar();
 
 
-// Auto-load ICS from URL parameter if provided
-const params = new URLSearchParams(window.location.search);
-let currentIcsSource = '';
-const icsParamUrl = params.get('ics');
-if (icsParamUrl) {
-  if (els.url) els.url.value = icsParamUrl;
-  let currentIcsSource = '';
-  // Optionally auto-render
-  window.addEventListener('DOMContentLoaded', () => {
-    if (els.render) els.render.click();
-  });
+// ---- URL <-> state helpers ----
+function readStateFromUrl() {
+  const p = new URLSearchParams(location.search);
+  const state = {
+    ics: (p.get('ics') || '').trim(),
+    term: (p.get('term') || '').trim(),
+    year: p.get('year') ? Number(p.get('year')) : undefined,
+    hide: p.get('hide') === '1',
+  };
+  // Normalize term casing to match our select values (Michaelmas/Valentine/Petertide)
+  if (state.term) {
+    const t = state.term.toLowerCase();
+    if (t === 'michaelmas') state.term = 'Michaelmas';
+    else if (t === 'valentine') state.term = 'Valentine';
+    else if (t === 'petertide') state.term = 'Petertide';
+    else state.term = undefined;
+  }
+  if (state.year && !Number.isFinite(state.year)) state.year = undefined;
+  return state;
 }
+
+function writeStateToUrl(next, { replace = true } = {}) {
+  const p = new URLSearchParams();
+  if (next.ics) p.set('ics', next.ics);
+  if (next.term) p.set('term', next.term);
+  if (Number.isFinite(next.year)) p.set('year', String(next.year));
+  if (next.hide) p.set('hide', '1');
+  const qs = p.toString();
+  const url = qs ? `?${qs}` : location.pathname;
+  if (replace) history.replaceState(null, '', url); else history.pushState(null, '', url);
+}
+
+function applyStateToForm(state) {
+  if (state.ics != null && els.url) els.url.value = state.ics;
+  if (state.term && els.term) els.term.value = state.term;
+  if (state.year && els.year) els.year.value = state.year;
+  if (state.hide) {
+    if (!document.querySelector('.toolbar')?.classList.contains('hidden')) {
+      (typeof hideToolbar === 'function') ? hideToolbar()
+        : document.querySelector('.toolbar')?.classList.add('hidden');
+    }
+  }
+}
+
+function getStateFromForm() {
+  return {
+    ics: (els.url?.value || '').trim(),
+    term: els.term?.value,
+    year: els.year ? Number(els.year.value) : undefined,
+    hide: document.querySelector('.toolbar')?.classList.contains('hidden') || false,
+  };
+}
+
+// ---- Initial load from URL ----
+window.addEventListener('DOMContentLoaded', () => {
+  const state = readStateFromUrl();
+  applyStateToForm(state);
+  // Auto-render if we have enough info
+  if (state.ics && state.term && Number.isFinite(state.year)) {
+    els.render?.click();
+  }
+});
+
+// Back/forward support: rehydrate + render
+window.addEventListener('popstate', () => {
+  const state = readStateFromUrl();
+  applyStateToForm(state);
+  if (state.ics && state.term && Number.isFinite(state.year)) {
+    els.render?.click();
+  }
+});
+
+// Keep URL in sync when user edits controls
+let __writeTimer;
+function scheduleWrite() {
+  clearTimeout(__writeTimer);
+  __writeTimer = setTimeout(() => writeStateToUrl(getStateFromForm(), { replace: true }), 120);
+}
+['input', 'change'].forEach(evt => {
+  els.url?.addEventListener(evt, scheduleWrite);
+  els.term?.addEventListener(evt, scheduleWrite);
+  els.year?.addEventListener(evt, scheduleWrite);
+});
+// Also reflect toolbar visibility changes
+els.toolbarToggle?.addEventListener('click', scheduleWrite);
+els.showBtn?.addEventListener('click', scheduleWrite);
 
 async function fetchICSFromUrl(remoteUrl) {
   // Try direct CORS fetch first
@@ -267,6 +342,8 @@ els.render.addEventListener('click', async () => {
   const year = Number(els.year.value);
   const termName = els.term.value;
 
+  let currentIcsSource = '';
+
   if (!urlVal && !file) {
     setStatus('Provide a remote ICS URL or choose a file.');
     return;
@@ -277,8 +354,10 @@ els.render.addEventListener('click', async () => {
     let icalText;
     if (urlVal) {
       icalText = await fetchICSFromUrl(urlVal);
+      currentIcsSource = urlVal;
     } else {
       icalText = await file.text();
+      currentIcsSource = file ? file.name : currentIcsSource;
     }
 
     const { start, end } = termRange(year, termName);
@@ -286,15 +365,16 @@ els.render.addEventListener('click', async () => {
     const instances = expandAllDayInstances(icalText, start, end);
     const byDate = groupByDate(instances);
 
+    // Ensure URL reflects the current state used for this render
+    writeStateToUrl({
+      ics: (els.url?.value || '').trim(),
+      term: termName,
+      year: year,
+      hide: document.querySelector('.toolbar')?.classList.contains('hidden') || false,
+    }, { replace: true });
+
     setStatus(`Loaded ${instances.length} all-day instances.`);
     renderMonths(els.grid, start, end, byDate);
-    if (urlVal) {
-      icalText = await fetchICSFromUrl(urlVal);
-      currentIcsSource = urlVal;
-    } else {
-      icalText = await file.text();
-      currentIcsSource = file ? file.name : currentIcsSource;
-    }
     updateMeta({
       source: (currentIcsSource ? (currentIcsSource.split('/').pop() || currentIcsSource) : ''),
       allDayCount: instances.length,
