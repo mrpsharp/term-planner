@@ -198,3 +198,20 @@ h1 {
     margin-bottom: .5rem;
   }
 }
+
+@media (max-width: 600px) {
+  #showToolbarBtn {
+    font-size: 16px;
+    padding: 6px 8px;
+    text-indent: -9999px;
+    position: relative;
+  }
+  #showToolbarBtn::before {
+    content: "⚙︎";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-indent: 0;
+  }
+}

@@ -32,10 +32,6 @@
       <button id="renderBtn">Render</button>
       <button onclick="window.print()">Print</button>
 
-      <!-- NEW: in-toolbar hide button -->
-      <button id="toolbarToggle" class="btn-ghost" type="button"
-              aria-controls="toolbar" aria-expanded="true" title="Hide toolbar">Hide</button>
-
       <span id="status" aria-live="polite"></span>
       <small id="corsNote" style="opacity:.75;">Tip: Remote URLs may need CORS. We’ll auto-try a proxy if direct fetch fails.</small>
     </div>
@@ -43,8 +39,8 @@
    
   </div>
 </div>
-<!-- <div id="printMeta" class="print-meta" aria-hidden="true"></div> -->
-  <button id="showToolbarBtn" aria-label="Show toolbar" title="Show toolbar" style="display:none;">⚙︎ Show toolbar</button>
+<div id="printMeta" class="print-meta" aria-hidden="true"></div>
+  <button id="showToolbarBtn" aria-label="Hide toolbar" title="Hide toolbar">Hide toolbar</button>
 
   <div class="grid" id="grid" aria-live="polite"></div>
   <div class="legend">

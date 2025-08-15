@@ -163,7 +163,6 @@ const els = {
 
   // NEW:
   toolbar: document.getElementById('toolbar'),
-  toolbarToggle: document.getElementById('toolbarToggle'),
   showBtn: document.getElementById('showToolbarBtn'),
   metaSrc: document.getElementById('metaSrc'),
   metaStats: document.getElementById('metaStats'),
@@ -171,6 +170,20 @@ const els = {
   metaTz: document.getElementById('metaTz'),
   printMeta: document.getElementById('printMeta'),
 };
+
+if (els.toolbar && els.showBtn) {
+  if (els.toolbar.classList.contains('hidden')) {
+    els.showBtn.textContent = '⚙︎ Show toolbar';
+    els.showBtn.setAttribute('aria-label', 'Show toolbar');
+    els.showBtn.title = 'Show toolbar';
+    els.showBtn.setAttribute('aria-expanded', 'false');
+  } else {
+    els.showBtn.textContent = 'Hide toolbar';
+    els.showBtn.setAttribute('aria-label', 'Hide toolbar');
+    els.showBtn.title = 'Hide toolbar';
+    els.showBtn.setAttribute('aria-expanded', 'true');
+  }
+}
 
 function toDisplayDate(d) {
   try {
@@ -183,22 +196,22 @@ function toDisplayDate(d) {
 }
 
 function hideToolbar() {
-  if (!els.toolbar) return;
+  if (!els.toolbar || !els.showBtn) return;
   els.toolbar.classList.add('hidden');
-  if (els.showBtn) {
-    els.showBtn.style.display = 'inline-block';
-    els.showBtn.setAttribute('aria-expanded', 'false');
-  }
+  els.showBtn.textContent = '⚙︎ Show toolbar';
+  els.showBtn.setAttribute('aria-label', 'Show toolbar');
+  els.showBtn.title = 'Show toolbar';
+  els.showBtn.setAttribute('aria-expanded', 'false');
   sessionStorage.setItem('toolbarHidden', '1');
 }
 
 function showToolbar() {
-  if (!els.toolbar) return;
+  if (!els.toolbar || !els.showBtn) return;
   els.toolbar.classList.remove('hidden');
-  if (els.showBtn) {
-    els.showBtn.style.display = 'none';
-    els.showBtn.setAttribute('aria-expanded', 'true');
-  }
+  els.showBtn.textContent = 'Hide toolbar';
+  els.showBtn.setAttribute('aria-label', 'Hide toolbar');
+  els.showBtn.title = 'Hide toolbar';
+  els.showBtn.setAttribute('aria-expanded', 'true');
   sessionStorage.setItem('toolbarHidden', '0');
 }
 
@@ -208,10 +221,15 @@ function updateMeta({ source, allDayCount, multiDayCount, startDate, endDate, tz
   if (els.metaRange) els.metaRange.textContent = `Range: ${toDisplayDate(startDate)} – ${toDisplayDate(endDate)}`;
   if (els.metaTz)    els.metaTz.textContent    = `TZ: ${tz || Intl.DateTimeFormat().resolvedOptions().timeZone}`;
 
+  if (els.printMeta) {
+    els.printMeta.textContent = `${els.metaSrc?.textContent || ''} • ${els.metaStats?.textContent || ''} • ${els.metaRange?.textContent || ''} • ${els.metaTz?.textContent || ''}`;
+  }
 }
+
 // Wire up buttons and keyboard shortcut
-els.toolbarToggle?.addEventListener('click', hideToolbar);
-els.showBtn?.addEventListener('click', showToolbar);
+els.showBtn?.addEventListener('click', () => {
+  if (els.toolbar?.classList.contains('hidden')) showToolbar(); else hideToolbar();
+});
 document.addEventListener('keydown', (e) => {
   if (e.key && e.key.toLowerCase() === 't' && !e.metaKey && !e.ctrlKey && !e.altKey) {
     if (els.toolbar?.classList.contains('hidden')) showToolbar(); else hideToolbar();
@@ -306,7 +324,6 @@ function scheduleWrite() {
   els.year?.addEventListener(evt, scheduleWrite);
 });
 // Also reflect toolbar visibility changes
-els.toolbarToggle?.addEventListener('click', scheduleWrite);
 els.showBtn?.addEventListener('click', scheduleWrite);
 
 async function fetchICSFromUrl(remoteUrl) {
