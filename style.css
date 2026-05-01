@@ -84,6 +84,13 @@ h1 {
   overflow: hidden;
 }
 
+.moon {
+  font-size: 0.8em;
+  margin-left: 3px;
+  vertical-align: middle;
+  line-height: 1;
+}
+
 .ev {
   white-space: nowrap;
   overflow: hidden;

@@ -120,8 +120,10 @@ function renderMonths(container, start, end, eventsByDate) {
       const events = eventsByDate.get(dayKey) || [];
       const evHTML = events.slice(0, 5).map(e => `<div class="ev">${escapeHTML(e.title)}</div>`).join('');
 
+      const moonPhase = getMoonPhase(d);
+      const moonHTML = moonPhase ? ` <span class="moon">${moonPhase}</span>` : '';
       tr.innerHTML = `
-        <td class="dow"><span class="dow-d">${escapeHTML(wd)}</span> <span class="dow-n">${dn}</span></td>
+        <td class="dow"><span class="dow-d">${escapeHTML(wd)}</span> <span class="dow-n">${dn}</span>${moonHTML}</td>
         <td class="evs">${evHTML}</td>
       `;
       tbody.appendChild(tr);
@@ -144,6 +146,20 @@ function groupByDate(instances) {
 
 function escapeHTML(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ----- Moon phase -----
+const _MOON_REFERENCE_MS = Date.parse('2000-01-06T18:14:00Z'); // known new moon
+const _LUNAR_CYCLE = 29.53058867;
+
+function getMoonPhase(luxonDate) {
+  const noonMs = luxonDate.set({ hour: 12, minute: 0, second: 0, millisecond: 0 }).toMillis();
+  const age = (((noonMs - _MOON_REFERENCE_MS) / 86400000) % _LUNAR_CYCLE + _LUNAR_CYCLE) % _LUNAR_CYCLE;
+  if (age < 0.5 || age >= _LUNAR_CYCLE - 0.5) return '🌑';
+  if (Math.abs(age - 7.38264)  < 0.5) return '🌓';
+  if (Math.abs(age - 14.76529) < 0.5) return '🌕';
+  if (Math.abs(age - 22.14794) < 0.5) return '🌗';
+  return null;
 }
 
 // ----- UI wiring -----
